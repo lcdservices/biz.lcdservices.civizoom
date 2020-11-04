@@ -239,18 +239,20 @@ function civizoom_civicrm_postCommit($op, $objectName, $objectId, &$objectRef) {
     if ($zoomId && in_array($objectRef->status_id, $statusCancel)) {
       $registrant_id = CRM_Core_BAO_CustomField::getCustomFieldID('registrant_id', 'civizoom_registrant', TRUE);
 
-      try {
-        $participant = civicrm_api3('Participant', 'getsingle', [
-          'id' => $objectRef->id,
-          'api.Contact.getsingle' => [],
-          'return' => [$registrant_id],
-        ]);
+      if ($registrant_id) {
+        try {
+          $participant = civicrm_api3('Participant', 'getsingle', [
+            'id' => $objectRef->id,
+            'api.Contact.getsingle' => [],
+            'return' => [$registrant_id],
+          ]);
 
-        CRM_Civizoom_Zoom::cancelMeetingRegistration($zoomId, $participant[$registrant_id],
-          $participant['api.Contact.getsingle']['email']);
-      }
-      catch (CiviCRM_API3_Exception $e) {
-        Civi::log()->debug(__FUNCTION__, ['$e' => $e]);
+          CRM_Civizoom_Zoom::cancelMeetingRegistration($zoomId, $participant[$registrant_id],
+            $participant['api.Contact.getsingle']['email']);
+        }
+        catch (CiviCRM_API3_Exception $e) {
+          Civi::log()->debug(__FUNCTION__, ['$e' => $e]);
+        }
       }
     }
   }
