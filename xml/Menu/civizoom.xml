@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<menu>
+  <item>
+    <path>civicrm/admin/setting/civizoom</path>
+    <title>CiviZoom Settings</title>
+    <page_callback>CRM_Admin_Form_Generic</page_callback>
+    <access_arguments>access CiviEvent</access_arguments>
+  </item>
+</menu>
