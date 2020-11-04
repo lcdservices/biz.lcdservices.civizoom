@@ -39,7 +39,7 @@ install it with the command-line tool [cv](https://github.com/civicrm/cv).
 
 ```bash
 cd <extension-dir>
-cv dl biz.lcdservices.civizoom@https://github.com/FIXME/biz.lcdservices.civizoom/archive/master.zip
+cv dl biz.lcdservices.civizoom@https://github.com/lcdservices/biz.lcdservices.civizoom/archive/master.zip
 ```
 
 ## Installation (CLI, Git)
