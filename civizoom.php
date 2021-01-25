@@ -161,9 +161,14 @@ function civizoom_civicrm_fieldOptions($entity, $field, &$options, $params) {
     $zoomMtg = CRM_Core_BAO_CustomField::getCustomFieldID('zoom_meeting', 'civizoom', TRUE);
     if ($field == $zoomMtg && CRM_Civizoom_Zoom::getZoomObject()) {
       $meetings = CRM_Civizoom_Zoom::getMeetingIds(FALSE);
+      $webinars = CRM_Civizoom_Zoom::getWebinarIds();
 
       foreach ($meetings as $meeting) {
-        $options[$meeting['id']] = $meeting['topic'];
+        $options['m'.$meeting['id']] = $meeting['topic'].' (meeting)';
+      }
+
+      foreach ($webinars as $webinar) {
+        $options['w'.$webinar['id']] = $webinar['topic'].' (webinar)';
       }
     }
   }
@@ -193,6 +198,7 @@ function civizoom_civicrm_postCommit($op, $objectName, $objectId, &$objectRef) {
           'city' => $contact['city'],
           'country' => $contact['country'],
           'state' => $contact['state_province'],
+          'zip' => $contact['postal_code'] ?? NULL,
           'phone' => $contact['phone'],
           'org' => $contact['current_employer'],
           'job_title' => $contact['job_title'],
@@ -208,7 +214,7 @@ function civizoom_civicrm_postCommit($op, $objectName, $objectId, &$objectRef) {
           ],
         ];
 
-        $zoomReg = CRM_Civizoom_Zoom::createMeetingRegistration($zoomId, $params);
+        $zoomReg = CRM_Civizoom_Zoom::createZoomRegistration($zoomId, $params);
         //Civi::log()->debug(__FUNCTION__, ['$zoomReg' => $zoomReg]);
 
         //presence of a code in the response indicates a problem
@@ -247,7 +253,7 @@ function civizoom_civicrm_postCommit($op, $objectName, $objectId, &$objectRef) {
             'return' => [$registrant_id],
           ]);
 
-          CRM_Civizoom_Zoom::cancelMeetingRegistration($zoomId, $participant[$registrant_id],
+          CRM_Civizoom_Zoom::cancelZoomRegistration($zoomId, $participant[$registrant_id],
             $participant['api.Contact.getsingle']['email']);
         }
         catch (CiviCRM_API3_Exception $e) {

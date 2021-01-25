@@ -1,6 +1,6 @@
 # CiviZoom
 
-This extension integrates CiviCRM events with Zoom meetings. As people register for events in CiviCRM they will be added as registrants to the linked Zoom meeting. 
+This extension integrates CiviCRM events with Zoom meetings and webinars. As people register for events in CiviCRM they will be added as registrants to the linked Zoom meeting or webinar. 
 
 # Configuration
 
@@ -46,3 +46,7 @@ cv dl biz.lcdservices.civizoom@https://github.com/lcdservices/biz.lcdservices.ci
 
 Sysadmins and developers may clone the [Git](https://en.wikipedia.org/wiki/Git) repo for this extension and
 install it with the command-line tool [cv](https://github.com/civicrm/cv).
+
+## Release Notes
+
+2.0: Now supports Zoom webinars as well as meetings. From the CiviCRM interface no distinction is made between a meeting or webinar other than the suffix appended to the event name. Registrations and cancellations work identically.
