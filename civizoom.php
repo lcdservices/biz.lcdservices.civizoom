@@ -159,7 +159,7 @@ function civizoom_civicrm_fieldOptions($entity, $field, &$options, $params) {
 
   if ($entity == 'Event') {
     $zoomMtg = CRM_Core_BAO_CustomField::getCustomFieldID('zoom_meeting', 'civizoom', TRUE);
-    if ($field == $zoomMtg) {
+    if ($field == $zoomMtg && CRM_Civizoom_Zoom::getZoomObject()) {
       $meetings = CRM_Civizoom_Zoom::getMeetingIds(FALSE);
 
       foreach ($meetings as $meeting) {
@@ -181,7 +181,7 @@ function civizoom_civicrm_postCommit($op, $objectName, $objectId, &$objectRef) {
     $zoomId = CRM_Civizoom_Zoom::getEventZoomMeetingId($objectRef->event_id);
     $statusReg = CRM_Civizoom_Zoom::getConfiguredStatuses('register');
 
-    if ($zoomId && in_array($objectRef->status_id, $statusReg)) {
+    if ($zoomId && in_array($objectRef->status_id, $statusReg) && CRM_Civizoom_Zoom::getZoomObject()) {
       try {
         $contact = civicrm_api3('Contact', 'getsingle', ['id' => $objectRef->contact_id]);
 
@@ -236,7 +236,7 @@ function civizoom_civicrm_postCommit($op, $objectName, $objectId, &$objectRef) {
     $zoomId = CRM_Civizoom_Zoom::getEventZoomMeetingId($objectRef->event_id);
     $statusCancel = CRM_Civizoom_Zoom::getConfiguredStatuses('cancel');
 
-    if ($zoomId && in_array($objectRef->status_id, $statusCancel)) {
+    if ($zoomId && in_array($objectRef->status_id, $statusCancel) && CRM_Civizoom_Zoom::getZoomObject()) {
       $registrant_id = CRM_Core_BAO_CustomField::getCustomFieldID('registrant_id', 'civizoom_registrant', TRUE);
 
       if ($registrant_id) {
