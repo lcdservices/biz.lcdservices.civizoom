@@ -185,8 +185,14 @@ function civizoom_civicrm_postCommit($op, $objectName, $objectId, &$objectRef) {
   if ($op == 'create' && $objectName == 'Participant') {
     $zoomId = CRM_Civizoom_Zoom::getEventZoomMeetingId($objectRef->event_id);
     $statusReg = CRM_Civizoom_Zoom::getConfiguredStatuses('register');
+    $rolesConfigured = CRM_Civizoom_Zoom::getConfiguredRoles();
+    $rolesSelected = CRM_Utils_Array::explodePadded($objectRef->role_id);
 
-    if ($zoomId && in_array($objectRef->status_id, $statusReg) && CRM_Civizoom_Zoom::getZoomObject()) {
+    if ($zoomId &&
+      in_array($objectRef->status_id, $statusReg) &&
+      CRM_Civizoom_Zoom::getZoomObject() &&
+      !empty(array_intersect($rolesConfigured, $rolesSelected))
+    ) {
       try {
         $contact = civicrm_api3('Contact', 'getsingle', ['id' => $objectRef->contact_id]);
 

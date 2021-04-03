@@ -53,4 +53,20 @@ return [
     'is_contact' => 0,
     'settings_pages' => ['civizoom' => ['weight' => 10]],
   ],
+  'civizoom_role_register' => [
+    'name' => 'civizoom_role_register',
+    'group' => 'civizoom',
+    'group_name' => 'CiviZoom Settings',
+    'type' => 'String',
+    'html_type' => 'checkboxes',
+    'serialize' => CRM_Core_DAO::SERIALIZE_SEPARATOR_BOOKEND,
+    'pseudoconstant' => [
+      'callback' => 'CRM_Event_PseudoConstant::participantRole'
+    ],
+    'title' => ts('Participant Register Roles'),
+    'description' => ts('Indicate which participant roles Zoom registration should be processed for.'),
+    'is_domain' => 1,
+    'is_contact' => 0,
+    'settings_pages' => ['civizoom' => ['weight' => 10]],
+  ],
 ];

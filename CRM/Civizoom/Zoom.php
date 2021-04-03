@@ -197,4 +197,12 @@ class CRM_Civizoom_Zoom {
 
     return $statuses;
   }
+
+  static function getConfiguredRoles() {
+    $roles = Civi::settings()->get('civizoom_role_register');
+    $roles = CRM_Utils_Array::explodePadded($roles);
+    //Civi::log()->debug(__FUNCTION__, ['$roles' => $roles]);
+
+    return $roles;
+  }
 }
