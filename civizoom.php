@@ -160,7 +160,7 @@ function civizoom_civicrm_fieldOptions($entity, $field, &$options, $params) {
   if ($entity == 'Event') {
     $zoomMtg = CRM_Core_BAO_CustomField::getCustomFieldID('zoom_meeting', 'civizoom', TRUE);
     if ($field == $zoomMtg && CRM_Civizoom_Zoom::getZoomObject()) {
-      $meetings = CRM_Civizoom_Zoom::getMeetingIds(FALSE);
+      $meetings = CRM_Civizoom_Zoom::getMeetingIds(TRUE);
       $webinars = CRM_Civizoom_Zoom::getWebinarIds();
 
       foreach ($meetings as $meeting) {

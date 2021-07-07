@@ -54,7 +54,7 @@ class CRM_Civizoom_Zoom {
       if (!empty($meeting['meetings'])) {
         //get full details about each webinar so we determine if registration is enabled
         foreach ($meeting['meetings'] as $key => $meetingSummary) {
-          $details = $zoom->doRequest('GET', '/meetings/{webinarId}',
+          $details = $zoom->doRequest('GET', '/meetings/{meetingId}',
             $params, ['meetingId' => $meetingSummary['id']]);
           //Civi::log()->debug(__FUNCTION__, ['$details' => $details]);
 

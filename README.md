@@ -51,3 +51,4 @@ install it with the command-line tool [cv](https://github.com/civicrm/cv).
 
 2.0: Now supports Zoom webinars as well as meetings. From the CiviCRM interface no distinction is made between a meeting or webinar other than the suffix appended to the event name. Registrations and cancellations work identically.
 2.1: Added role-based setting.
+2.2: Fix bug impacting what meetings are available for selection. Changed setting so that only upcoming meetings are available for selection. This presents a problem, as past Zoom meetings tied to past events will not display the selection as they are no longer available, but the alternative (retrieving all meetings) is not sustainable as the list of meetings grows. Future work will attempt to address this more fully. 
