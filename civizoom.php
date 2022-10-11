@@ -103,8 +103,12 @@ function civizoom_civicrm_fieldOptions($entity, $field, &$options, $params) {
   if ($entity == 'Event') {
     $zoomMtg = CRM_Core_BAO_CustomField::getCustomFieldID('zoom_meeting', 'civizoom', TRUE);
     if ($field == $zoomMtg && CRM_Civizoom_Zoom::getZoomObject()) {
-      $meetings = CRM_Civizoom_Zoom::getMeetingIds(TRUE);
+      $meetings = CRM_Civizoom_Zoom::getMeetingIds(FALSE);
       $webinars = CRM_Civizoom_Zoom::getWebinarIds();
+
+      if ($params['context'] == 'create') {
+        $options['n0'] = '<- Create new meeting ->';
+      }
 
       foreach ($meetings as $meeting) {
         $options['m'.$meeting['id']] = $meeting['topic'].' (meeting)';
@@ -124,6 +128,240 @@ function civizoom_civicrm_postCommit($op, $objectName, $objectId, &$objectRef) {
     '$objectId' => $objectId,
     '$objectRef' => $objectRef,
   ]);*/
+
+  // Creation of a recurring set for an event
+  if ($op == 'create' && $objectName == 'ActionSchedule' && (strcmp($objectRef->repetition_frequency_unit, 'hour') !== 0 && strcmp($objectRef->repetition_frequency_unit, 'year') !== 0)) {
+
+    $zoomId = CRM_Civizoom_Zoom::getEventZoomMeetingId($objectRef->entity_value);
+
+    // Check parent event for Zoom meeting
+    if ((substr($zoomId, 0, 1) == 'm' || substr($zoomId, 0, 1) == 'w' ) && CRM_Civizoom_Zoom::getZoomObject()) {
+
+      // Obtain day from full date
+      $start_action_day = date('d', strtotime(strval($objectRef->start_action_date)));
+
+      // Set recurring meeting parameters
+      $recurring_parameters = array (
+        "repetition_frequency_unit" => array(
+          "day" => 1,
+          "week" => 2,
+          "month" => 3,
+        ),
+        "repetition_frequency_interval" => intval($objectRef->repetition_frequency_interval),
+        "start_action_condition" => array(
+          "sunday" => 1,
+          "monday" => 2,
+          "tuesday" => 3,
+          "wednesday" => 4,
+          "thursday" => 5,
+          "friday" => 6,
+          "saturday" => 7,
+        ),
+        "limit_to" => intval($objectRef->limit_to),
+        "start_action_date" => strval($start_action_day),
+        "entity_status_1" => array(
+          "last" => -1,
+          "first" => 1,
+          "second" => 2,
+          "third" => 3,
+          "fourth" => 4,
+        ),
+        "entity_status_2" => array(
+          "sunday" => 1,
+          "monday" => 2,
+          "tuesday" => 3,
+          "wednesday" => 4,
+          "thursday" => 5,
+          "friday" => 6,
+          "saturday" => 7,
+        ),
+        "start_action_offset" => intval($objectRef->start_action_offset) + 1,
+        "absolute_date" =>  intval($objectRef->absolute_date),
+      );
+
+      $weekly_days_imploded = array();
+      $weekly_days_converted = array();
+
+      // Retrieve days of the week from string
+      $entity_status_exploded = explode(" ", $objectRef->entity_status);
+
+      // Retrieve day & week information for recurring event
+      $weekly_days_imploded = explode(",", $objectRef->start_action_condition);
+      foreach ($weekly_days_imploded as $day) {
+        array_push($weekly_days_converted, $recurring_parameters['start_action_condition'][$day]);
+      }
+
+      $params = [
+        "type" => 8,
+        "recurrence" => [
+          "type" => $recurring_parameters['repetition_frequency_unit'][$objectRef->repetition_frequency_unit],
+          "repeat_interval" => $recurring_parameters['repetition_frequency_interval'],
+        ],
+      ];
+
+      // Set interval specific fields.
+      if ($params['recurrence']['type'] == 2) {
+        $params['recurrence']['weekly_days'] = implode(",", $weekly_days_converted);
+      } else if ($params['recurrence']['type'] == 3) {
+        if ($objectRef->entity_status) {
+          $params['recurrence']['monthly_day'] = $recurring_parameters['start_action_date'];
+          $params['recurrence']['monthly_week'] = $recurring_parameters['entity_status_1'][$entity_status_exploded[0]];
+          $params['recurrence']['monthly_week_day'] = $recurring_parameters['entity_status_2'][$entity_status_exploded[1]];
+        } else if ($objectRef->limit_to) {
+          $params['recurrence']['monthly_day'] = $recurring_parameters['limit_to'];
+        }
+      }
+
+      // Set number of repetition specific fields.
+      if ($recurring_parameters['start_action_offset']) {
+        $params['recurrence']['end_times'] = $recurring_parameters['start_action_offset'];
+      } else {
+        $params['recurrence']['end_date_time'] = $recurring_parameters['absolute_date'];
+      }
+
+      //Civi::log()->debug(__FUNCTION__, ['$params' => $params]);
+
+      //Update recurrent meeting portion
+      $outcome = CRM_Civizoom_Zoom::updateZoomMeeting($zoomId, $params);
+    }
+
+  }
+
+  if ($op == 'create' && $objectName == 'Event') {
+
+    $zoomId = CRM_Civizoom_Zoom::getEventZoomMeetingId($objectId);
+
+    // Custom field starting with 'n' create new Zoom Meeting
+    if (substr($zoomId, 0, 1) == 'n' && CRM_Civizoom_Zoom::getZoomObject()) {
+
+      try {
+
+        //Pseudocode
+        //if retrieved meeting is not n0 && id start / end time is changed
+        //update meeting using PATCH
+        //update custom field value if needed
+
+        $contactId = civicrm_api3('Contact', 'getsingle', [
+          'return' => ["email"],
+          'id' => "user_contact_id",
+        ]);
+
+        $start_time = date('Y-m-d\TH:i:s', strtotime(strval($objectRef->start_date)));
+        $start_time_date = strtotime(strval($objectRef->start_date));
+        $end_time_date = strtotime(strval($objectRef->end_date));
+        $duration = round(abs($end_time_date - $start_time_date) / 60, 2);
+
+        $params = [
+          'topic' => strval($objectRef->title),
+          'type' => 2,
+          'pre_schedule' => 0,
+          'start_time' => strval($start_time),
+          'duration' => intval($duration),
+          'schedule_for' => strval($contactId['email']),
+          'agenda' => strval($objectRef->description),
+          'settings' => [
+            'host_video' => 0,
+            'participant_video' => 0,
+            'approval_type' => 0,
+            'alternative_hosts'=> $contactId['email'], // TODO: Have to add multiple hosts, based on org relationships
+            'waiting_room' => 1,
+            'registrants_email_notification' => 1,
+            'registrants_confirmation_email' => 1,
+
+          ],
+        ];
+
+        // Create meeting with params & logged in user email
+        $zoomReg = CRM_Civizoom_Zoom::createZoomMeeting($zoomId, $params, $contactId['email']);
+
+        if (empty($zoomReg['code'])) {
+          $zoomMtg = CRM_Core_BAO_CustomField::getCustomFieldID('zoom_meeting', 'civizoom', TRUE);
+
+          $eventParams = [
+            'id' => $objectId,
+            $zoomMtg => 'm'.strval($zoomReg['id']),
+          ];
+
+          //Civi::log()->debug(__FUNCTION__, ['$eventParams' => $eventParams]);
+          civicrm_api3('Event', 'create', $eventParams);
+        }
+
+      }
+      catch (CiviCRM_API3_Exception $e) {
+        Civi::log()->debug(__FUNCTION__, ['$e' => $e]);
+      }
+
+    }
+
+  }
+
+  if ($op == 'edit' && $objectName == 'Event') {
+
+    $zoomId = CRM_Civizoom_Zoom::getEventZoomMeetingId($objectId);
+
+    // Custom field starting with 'n' create new Zoom Meeting
+    if (substr($zoomId, 0, 1) == 'n' && CRM_Civizoom_Zoom::getZoomObject()) {
+
+      try {
+
+        //Pseudocode
+        //if retrieved meeting is not n0 && id start / end time is changed
+        //update meeting using PATCH
+        //update custom field value if needed
+
+        $contactId = civicrm_api3('Contact', 'getsingle', [
+          'return' => ["email"],
+          'id' => "user_contact_id",
+        ]);
+
+        $start_time = date('Y-m-d\TH:i:s', strtotime(strval($objectRef->start_date)));
+        $start_time_date = strtotime(strval($objectRef->start_date));
+        $end_time_date = strtotime(strval($objectRef->end_date));
+        $duration = round(abs($end_time_date - $start_time_date) / 60, 2);
+
+        $params = [
+          'topic' => strval($objectRef->title),
+          'type' => 2,
+          'pre_schedule' => 0,
+          'start_time' => strval($start_time),
+          'duration' => intval($duration),
+          'schedule_for' => strval($contactId['email']),
+          'agenda' => strval($objectRef->description),
+          'settings' => [
+            'host_video' => 0,
+            'participant_video' => 0,
+            'approval_type' => 0,
+            'alternative_hosts'=> $contactId['email'], // TODO: Have to add multiple hosts, based on org relationships
+            'waiting_room' => 1,
+            'registrants_email_notification' => 1,
+            'registrants_confirmation_email' => 1,
+
+          ],
+        ];
+
+        // Create meeting with params & logged in user email
+        $zoomReg = CRM_Civizoom_Zoom::createZoomMeeting($zoomId, $params, $contactId['email']);
+
+        if (empty($zoomReg['code'])) {
+          $zoomMtg = CRM_Core_BAO_CustomField::getCustomFieldID('zoom_meeting', 'civizoom', TRUE);
+
+          $eventParams = [
+            'id' => $objectId,
+            $zoomMtg => 'm'.strval($zoomReg['id']),
+          ];
+
+          //Civi::log()->debug(__FUNCTION__, ['$eventParams' => $eventParams]);
+          civicrm_api3('Event', 'create', $eventParams);
+        }
+
+      }
+      catch (CiviCRM_API3_Exception $e) {
+        Civi::log()->debug(__FUNCTION__, ['$e' => $e]);
+      }
+
+    }
+
+  }
 
   if ($op == 'create' && $objectName == 'Participant') {
     $zoomId = CRM_Civizoom_Zoom::getEventZoomMeetingId($objectRef->event_id);

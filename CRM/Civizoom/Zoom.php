@@ -59,6 +59,7 @@ class CRM_Civizoom_Zoom {
           //Civi::log()->debug(__FUNCTION__, ['$details' => $details]);
 
           if ($details['settings']['approval_type'] == 2) {
+            // TODO: Might need to remove this unset
             unset($meeting['meetings'][$key]);
           }
         }
@@ -205,4 +206,52 @@ class CRM_Civizoom_Zoom {
 
     return $roles;
   }
+
+  /**
+   * @param $zoomId
+   * @param $params
+   * @return false|mixed
+   */
+  static function createZoomMeeting($zoomId, $params, $userId) {
+    //Civi::log()->debug(__FUNCTION__, ['$zoomId' => $zoomId, '$params' => $params]);
+
+    $zoom = self::getZoomObject();
+    $json = json_encode($params);
+
+    // $api = 'meetings';
+    // if (substr($zoomId, 0, 1) == 'w') {
+    //   $api = 'webinars';
+    // }
+
+    //$zoomId = substr($zoomId, 1);
+    //Civi::log()->debug(__FUNCTION__, ['$zoomId' => $zoomId, '$api' => $api]);
+
+    $response = $zoom->doRequest('POST', "/users/{userId}/meetings", ['userId' => $userId], ['userId' => $userId], $json);
+
+    return $response;
+  }
+
+  /**
+   * @param $zoomId
+   * @param $params
+   * @return false|mixed
+   */
+  static function updateZoomMeeting($zoomId, $params) {
+    // Civi::log()->debug(__FUNCTION__, ['$zoomId' => $zoomId, '$params' => $params]);
+
+    $zoom = self::getZoomObject();
+    $json = json_encode($params);
+    $outcome = true;
+
+    $zoomId = substr($zoomId, 1);
+
+    $response = $zoom->doRequest('PATCH', "/meetings/{meetingId}", ['meetingId' => $zoomId], ['meetingId' => $zoomId], $json);
+
+    if($response['code']) {
+      $outcome = false;
+    }
+
+    return $outcome;
+  }
+
 }
