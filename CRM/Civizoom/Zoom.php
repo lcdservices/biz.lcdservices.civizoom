@@ -64,7 +64,7 @@ class CRM_Civizoom_Zoom {
         foreach ($meeting['meetings'] as $key => $meetingSummary) {
           $details = $zoom->doRequest('GET', '/meetings/{meetingId}',
             $params, ['meetingId' => $meetingSummary['id']]);
-          Civi::log()->debug(__FUNCTION__, ['$details' => $details]);
+          //Civi::log()->debug(__FUNCTION__, ['$details' => $details]);
 
           if ($details['settings']['approval_type'] == 2) {
             unset($meeting['meetings'][$key]);
@@ -179,7 +179,7 @@ class CRM_Civizoom_Zoom {
       'action' => 'cancel',
       'registrants' => [
         [
-          'id' => $zoomId,
+          'id' => $registrantId,
           'email' => $email,
         ],
       ],
