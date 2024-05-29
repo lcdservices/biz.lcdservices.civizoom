@@ -22,24 +22,6 @@ function civizoom_civicrm_install() {
 }
 
 /**
- * Implements hook_civicrm_postInstall().
- *
- * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_postInstall
- */
-function civizoom_civicrm_postInstall() {
-  _civizoom_civix_civicrm_postInstall();
-}
-
-/**
- * Implements hook_civicrm_uninstall().
- *
- * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_uninstall
- */
-function civizoom_civicrm_uninstall() {
-  _civizoom_civix_civicrm_uninstall();
-}
-
-/**
  * Implements hook_civicrm_enable().
  *
  * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_enable
@@ -49,41 +31,12 @@ function civizoom_civicrm_enable() {
 }
 
 /**
- * Implements hook_civicrm_disable().
- *
- * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_disable
- */
-function civizoom_civicrm_disable() {
-  _civizoom_civix_civicrm_disable();
-}
-
-/**
- * Implements hook_civicrm_upgrade().
- *
- * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_upgrade
- */
-function civizoom_civicrm_upgrade($op, CRM_Queue_Queue $queue = NULL) {
-  return _civizoom_civix_civicrm_upgrade($op, $queue);
-}
-
-/**
- * Implements hook_civicrm_entityTypes().
- *
- * Declare entity types provided by this module.
- *
- * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_entityTypes
- */
-function civizoom_civicrm_entityTypes(&$entityTypes) {
-  _civizoom_civix_civicrm_entityTypes($entityTypes);
-}
-
-/**
  * Implements hook_civicrm_navigationMenu().
  *
  * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_navigationMenu
  */
 function civizoom_civicrm_navigationMenu(&$menu) {
-  _civizoom_civix_insert_navigation_menu($menu, 'Administer', [
+  _civizoom_civix_insert_navigation_menu($menu, 'Administer/CiviEvent', [
     'label' => E::ts('CiviZoom Settings'),
     'name' => 'civizoom_settings',
     'url' => 'civicrm/admin/setting/civizoom',
@@ -125,9 +78,50 @@ function civizoom_civicrm_postCommit($op, $objectName, $objectId, &$objectRef) {
     '$objectRef' => $objectRef,
   ]);*/
 
-  if ($op == 'create' && $objectName == 'Participant') {
+  if (in_array($op, ['create', 'edit']) && $objectName == 'Participant') {
+    $registrant_id = CRM_Core_BAO_CustomField::getCustomFieldID('registrant_id', 'civizoom_registrant', TRUE);
+    $join_url = CRM_Core_BAO_CustomField::getCustomFieldID('join_url', 'civizoom_registrant', TRUE);
     $zoomId = CRM_Civizoom_Zoom::getEventZoomMeetingId($objectRef->event_id);
-    $statusReg = CRM_Civizoom_Zoom::getConfiguredStatuses('register');
+
+    //if Zoom registration ID exists in participant record, check if cancelled processing
+    if ($op == 'edit') {
+      $participant = \Civi\Api4\Participant::get(FALSE)
+        ->addSelect('civizoom_registrant.registrant_id')
+        ->addWhere('id', '=', $objectRef->id)
+        ->execute()
+        ->single();
+
+      if (!empty($participant['civizoom_registrant.registrant_id'])) {
+        $statusCancel = CRM_Civizoom_Zoom::getConfiguredStatuses('cancel');
+        /*Civi::log()->debug(__METHOD__, [
+          'zoomId' => $zoomId,
+          'statusCancel' => $statusCancel,
+        ]);*/
+
+        if ($zoomId && in_array($objectRef->status_id, $statusCancel) && CRM_Civizoom_Zoom::getZoomObject()) {
+          $registrant_id = CRM_Core_BAO_CustomField::getCustomFieldID('registrant_id', 'civizoom_registrant', TRUE);
+
+          if ($registrant_id) {
+            try {
+              $participant = civicrm_api3('Participant', 'getsingle', [
+                'id' => $objectRef->id,
+                'api.Contact.getsingle' => [],
+                'return' => [$registrant_id],
+              ]);
+              //Civi::log()->debug(__METHOD__, ['$participant' => $participant]);
+
+              CRM_Civizoom_Zoom::cancelZoomRegistration($zoomId, $participant[$registrant_id],
+                $participant['api.Contact.getsingle']['email']);
+            }
+            catch (CiviCRM_API3_Exception $e) {
+              Civi::log()->debug(__FUNCTION__, ['$e' => $e]);
+            }
+          }
+        }
+      }
+    }
+
+    $statusReg = CRM_Civizoom_Zoom::getConfiguredStatuses();
     $rolesConfigured = CRM_Civizoom_Zoom::getConfiguredRoles();
     $rolesSelected = CRM_Utils_Array::explodePadded($objectRef->role_id);
 
@@ -168,9 +162,6 @@ function civizoom_civicrm_postCommit($op, $objectName, $objectId, &$objectRef) {
 
         //presence of a code in the response indicates a problem
         if (empty($zoomReg['code'])) {
-          $registrant_id = CRM_Core_BAO_CustomField::getCustomFieldID('registrant_id', 'civizoom_registrant', TRUE);
-          $join_url = CRM_Core_BAO_CustomField::getCustomFieldID('join_url', 'civizoom_registrant', TRUE);
-
           $participantParams = [
             'id' => $objectRef->id,
             $registrant_id => $zoomReg['registrant_id'],
@@ -183,31 +174,6 @@ function civizoom_civicrm_postCommit($op, $objectName, $objectId, &$objectRef) {
       }
       catch (CiviCRM_API3_Exception $e) {
         Civi::log()->debug(__FUNCTION__, ['$e' => $e]);
-      }
-    }
-  }
-
-  if ($op == 'edit' && $objectName == 'Participant') {
-    $zoomId = CRM_Civizoom_Zoom::getEventZoomMeetingId($objectRef->event_id);
-    $statusCancel = CRM_Civizoom_Zoom::getConfiguredStatuses('cancel');
-
-    if ($zoomId && in_array($objectRef->status_id, $statusCancel) && CRM_Civizoom_Zoom::getZoomObject()) {
-      $registrant_id = CRM_Core_BAO_CustomField::getCustomFieldID('registrant_id', 'civizoom_registrant', TRUE);
-
-      if ($registrant_id) {
-        try {
-          $participant = civicrm_api3('Participant', 'getsingle', [
-            'id' => $objectRef->id,
-            'api.Contact.getsingle' => [],
-            'return' => [$registrant_id],
-          ]);
-
-          CRM_Civizoom_Zoom::cancelZoomRegistration($zoomId, $participant[$registrant_id],
-            $participant['api.Contact.getsingle']['email']);
-        }
-        catch (CiviCRM_API3_Exception $e) {
-          Civi::log()->debug(__FUNCTION__, ['$e' => $e]);
-        }
       }
     }
   }

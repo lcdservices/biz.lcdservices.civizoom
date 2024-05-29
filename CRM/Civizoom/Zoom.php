@@ -1,26 +1,32 @@
 <?php
 
+use CRM_Civizoom_ExtensionUtil as E;
+
 //https://marketplace.zoom.us/docs/api-reference/zoom-api/
 
 class CRM_Civizoom_Zoom {
+  static $zoom;
+
   /**
    * @return ZoomAPIWrapper|null
    */
   static function getZoomObject() {
-    $apiKey = Civi::settings()->get('civizoom_api_key');
-    $apiSecret = Civi::settings()->get('civizoom_api_secret');
+    if (is_null(self::$zoom)) {
+      $accountID = Civi::settings()->get('civizoom_account_id');
+      $clientKey = Civi::settings()->get('civizoom_client_key');
+      $clientSecret = Civi::settings()->get('civizoom_client_secret');
 
-    if (empty($apiKey) || empty($apiSecret)) {
-      return NULL;
+      if (empty($clientKey) || empty($clientSecret)) {
+        return NULL;
+      }
+
+      require_once E::path('packages/ZoomAPIWrapper/ZoomAPIWrapper.php');
+
+      self::$zoom = ZoomAPIWrapper::init($accountID, $clientKey, $clientSecret);
     }
 
-    $extPath = Civi::resources()->getPath(CRM_Civizoom_ExtensionUtil::LONG_NAME);
-    require_once $extPath.'/packages/ZoomAPIWrapper/ZoomAPIWrapper.php';
-
-    $zoom = new ZoomAPIWrapper($apiKey, $apiSecret);
-    //Civi::log()->debug(__FUNCTION__, ['$zoom' => $zoom]);
-
-    return $zoom;
+    //Civi::log()->debug(__METHOD__, ['zoom' => self::$zoom]);
+    return self::$zoom;
   }
 
   /**
@@ -29,8 +35,9 @@ class CRM_Civizoom_Zoom {
   static function getUsers() {
     $zoom = self::getZoomObject();
     $users = $zoom->doRequest('GET', '/users', ['status'=>'active']);
+    //Civi::log()->debug(__METHOD__, ['users' => $users]);
 
-    return $users['users'];
+    return $users['users'] ?? [];
   }
 
   /**
@@ -41,7 +48,7 @@ class CRM_Civizoom_Zoom {
     $users = self::getUsers();
     $zoom = self::getZoomObject();
     $meetings = [];
-    //Civi::log()->debug(__FUNCTION__, ['users' => $users]);
+    //Civi::log()->debug(__METHOD__, ['users' => $users]);
 
     $params = [
       'page_size' => 300,
@@ -50,6 +57,7 @@ class CRM_Civizoom_Zoom {
 
     foreach ($users as $user) {
       $meeting = $zoom->doRequest('GET', '/users/{userId}/meetings', $params, ['userId' => $user['id']]);
+      //Civi::log()->debug(__FUNCTION__, ['meeting' => $meeting]);
 
       if (!empty($meeting['meetings'])) {
         //get full details about each webinar so we determine if registration is enabled
@@ -120,7 +128,7 @@ class CRM_Civizoom_Zoom {
         'id' => $eventId,
       ]);
     }
-    catch (CiviCRM_API3_Exception $e) {}
+    catch (CRM_Core_Exception $e) {}
 
     return $result ?? NULL;
   }
@@ -171,7 +179,7 @@ class CRM_Civizoom_Zoom {
       'action' => 'cancel',
       'registrants' => [
         [
-          'id' => $zoomId,
+          'id' => $registrantId,
           'email' => $email,
         ],
       ],
