@@ -79,9 +79,15 @@ function civizoom_civicrm_postCommit($op, $objectName, $objectId, &$objectRef) {
   ]);*/
 
   if (in_array($op, ['create', 'edit']) && $objectName == 'Participant') {
+    $zoomId = CRM_Civizoom_Zoom::getEventZoomMeetingId($objectRef->event_id);
+
+    //exit immediately if no ZoomId linked to this event
+    if (empty($zoomId)) {
+      return;
+    }
+
     $registrant_id = CRM_Core_BAO_CustomField::getCustomFieldID('registrant_id', 'civizoom_registrant', TRUE);
     $join_url = CRM_Core_BAO_CustomField::getCustomFieldID('join_url', 'civizoom_registrant', TRUE);
-    $zoomId = CRM_Civizoom_Zoom::getEventZoomMeetingId($objectRef->event_id);
 
     //if Zoom registration ID exists in participant record, check if cancelled processing
     if ($op == 'edit') {
@@ -128,7 +134,8 @@ function civizoom_civicrm_postCommit($op, $objectName, $objectId, &$objectRef) {
     if ($zoomId &&
       in_array($objectRef->status_id, $statusReg) &&
       CRM_Civizoom_Zoom::getZoomObject() &&
-      !empty(array_intersect($rolesConfigured, $rolesSelected))
+      !empty(array_intersect($rolesConfigured, $rolesSelected)) &&
+      ($op == 'create' || empty($participant['civizoom_registrant.registrant_id']))
     ) {
       try {
         $contact = civicrm_api3('Contact', 'getsingle', ['id' => $objectRef->contact_id]);
