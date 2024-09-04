@@ -54,7 +54,11 @@ function civizoom_civicrm_fieldOptions($entity, $field, &$options, $params) {
   ]);*/
 
   if ($entity == 'Event') {
-    $zoomMtg = CRM_Core_BAO_CustomField::getCustomFieldID('zoom_meeting', 'civizoom', TRUE);
+    $zoomMtg = 'civizoom.zoom_meeting';
+    // TODO: This backward-compat for legacy custom field names can be removed when dropping support for CiviCRM < 5.79
+    if ($params['context'] !== 'full') {
+      $zoomMtg = CRM_Core_BAO_CustomField::getCustomFieldID('zoom_meeting', 'civizoom', TRUE);
+    }
     if ($field == $zoomMtg && CRM_Civizoom_Zoom::getZoomObject()) {
       $meetings = CRM_Civizoom_Zoom::getMeetingIds(TRUE);
       $webinars = CRM_Civizoom_Zoom::getWebinarIds();
