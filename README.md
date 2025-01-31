@@ -10,12 +10,26 @@ After installing the extension you must configure your API connection to Zoom an
 2. From the left sidebar click Advanced > App Marketplace.
 3. From the top menu, select the Develop dropdown and choose Build Server-to-Server App.
 4. Fill in the App details
-5. Select the following scopes (Note: you likely need to be logged in as the Owner user to assign these scopes): 
-* **View all user meetings** /meeting:read:admin
-* **View and manage all user meetings** /meeting:write:admin
-* **View all user information** /user:read:admin
-* **View all user Webinars** /webinar:read:admin
-* **View and manage all user Webinars** /webinar:write:admin
+5. Select the following scopes (you likely need to be logged in as the Owner user to assign these scopes): 
+* **View all user meetings**
+  * meeting:read:list_meetings:admin
+  * meeting:read:list_registrants:admin
+* **View and manage all user meetings** 
+  * meeting:update:meeting:admin
+  * meeting:write:registrant:admin
+  * meeting:update:registrant_status:admin
+  * meeting:write:batch_registrants:admin
+* **View all user information** 
+  * user:read:user:admin
+  * user:read:list_users:admin
+* **View all user Webinars** 
+  * webinar:read:list_webinars:admin
+  * webinar:read:list_registrants:admin
+* **View and manage all user Webinars**
+  * webinar:write:batch_registrants:admin
+  * webinar:update:registrant_status:admin
+  * webinar:update:webinar:admin
+  * webinar:write:registrant:admin
 6. Continue to the activation step and Activate the app.
 7. Load the App Credentials tab to retrieve the **Account ID**, **Client ID**, and **Client Secret**.
 7. In CiviCRM, navigate to Administer > CiviEvent > CiviZoom Settings. Fill in the authentication fields with the values retrieved in the previous step.
