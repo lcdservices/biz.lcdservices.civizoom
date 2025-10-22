@@ -123,7 +123,7 @@ function civizoom_civicrm_postCommit($op, $objectName, $objectId, &$objectRef) {
               CRM_Civizoom_Zoom::cancelZoomRegistration($zoomId, $participant[$registrant_id],
                 $participant['api.Contact.getsingle']['email']);
             }
-            catch (CiviCRM_API3_Exception $e) {
+            catch (CRM_Core_Exception $e) {
               Civi::log()->debug(__FUNCTION__, ['$e' => $e]);
             }
           }
@@ -183,7 +183,7 @@ function civizoom_civicrm_postCommit($op, $objectName, $objectId, &$objectRef) {
           civicrm_api3('Participant', 'create', $participantParams);
         }
       }
-      catch (CiviCRM_API3_Exception $e) {
+      catch (CRM_Core_Exception $e) {
         Civi::log()->debug(__FUNCTION__, ['$e' => $e]);
       }
     }
