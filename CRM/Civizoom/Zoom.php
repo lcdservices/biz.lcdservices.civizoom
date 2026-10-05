@@ -122,7 +122,7 @@ class CRM_Civizoom_Zoom {
    */
   static function getEventZoomMeetingId($eventId) {
     try {
-      $zoomMtg = CRM_Core_BAO_CustomField::getCustomFieldID('zoom_meeting', 'civizoom', TRUE);
+      $zoomMtg = \CRM_Core_BAO_CustomField::getShortNameFromLongName('civizoom.zoom_meeting');
       $result = civicrm_api3('Event', 'getvalue', [
         'return' => $zoomMtg,
         'id' => $eventId,
