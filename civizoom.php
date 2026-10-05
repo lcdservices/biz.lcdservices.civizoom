@@ -57,7 +57,7 @@ function civizoom_civicrm_fieldOptions($entity, $field, &$options, $params) {
     $zoomMtg = 'civizoom.zoom_meeting';
     // TODO: This backward-compat for legacy custom field names can be removed when dropping support for CiviCRM < 5.79
     if ($params['context'] !== 'full') {
-      $zoomMtg = CRM_Core_BAO_CustomField::getCustomFieldID('zoom_meeting', 'civizoom', TRUE);
+      $zoomMtg = \CRM_Core_BAO_CustomField::getShortNameFromLongName('civizoom.zoom_meeting');
     }
     if ($field == $zoomMtg && CRM_Civizoom_Zoom::getZoomObject()) {
       $meetings = CRM_Civizoom_Zoom::getMeetingIds(TRUE);
@@ -90,8 +90,8 @@ function civizoom_civicrm_postCommit($op, $objectName, $objectId, &$objectRef) {
       return;
     }
 
-    $registrant_id = CRM_Core_BAO_CustomField::getCustomFieldID('registrant_id', 'civizoom_registrant', TRUE);
-    $join_url = CRM_Core_BAO_CustomField::getCustomFieldID('join_url', 'civizoom_registrant', TRUE);
+    $registrant_id = \CRM_Core_BAO_CustomField::getShortNameFromLongName('civizoom_registrant.registrant_id');
+    $join_url = \CRM_Core_BAO_CustomField::getShortNameFromLongName('civizoom_registrant.join_url');
 
     //if Zoom registration ID exists in participant record, check if cancelled processing
     if ($op == 'edit') {
@@ -109,7 +109,7 @@ function civizoom_civicrm_postCommit($op, $objectName, $objectId, &$objectRef) {
         ]);*/
 
         if ($zoomId && in_array($objectRef->status_id, $statusCancel) && CRM_Civizoom_Zoom::getZoomObject()) {
-          $registrant_id = CRM_Core_BAO_CustomField::getCustomFieldID('registrant_id', 'civizoom_registrant', TRUE);
+          $registrant_id = \CRM_Core_BAO_CustomField::getShortNameFromLongName('civizoom_registrant.registrant_id');
 
           if ($registrant_id) {
             try {
